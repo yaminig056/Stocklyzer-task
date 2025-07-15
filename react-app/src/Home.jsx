@@ -183,6 +183,13 @@ function Home() {
     return colors[impact] || 'bg-gray-100 text-gray-700 border-gray-200';
   };
 
+  // Utility to strip HTML tags from a string
+  function stripHtml(html) {
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    return div.textContent || div.innerText || '';
+  }
+
   return (
     <div className="text-center">
       <h1 className="text-4xl font-bold text-gray-800 mb-6">Welcome to Stocklyzer</h1>
@@ -239,45 +246,40 @@ function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {news.map((item, idx) => (
                 <div key={item.id || idx} className="bg-gradient-to-br from-gray-50 to-white rounded-lg p-5 hover:shadow-lg transition-all duration-300 border border-gray-100 hover:border-blue-200">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex flex-wrap gap-2">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getCategoryColor(item.category)}`}>
-                        {item.category}
-                      </span>
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getImpactColor(item.impact)}`}>
-                        {item.impact} Impact
-                      </span>
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${
-                      item.sentiment === 'positive' ? 'bg-green-100 text-green-700 border-green-200' : 
-                      item.sentiment === 'negative' ? 'bg-red-100 text-red-700 border-red-200' : 
-                      'bg-gray-100 text-gray-700 border-gray-200'
-                    }`}>
-                      {item.sentiment}
-                    </span>
-                  </div>
-                  <h3 className="font-bold text-gray-900 text-sm leading-tight mb-3 line-clamp-3">
-                    <a href={item.url} className="hover:text-blue-600 transition-colors">
-                      {item.title}
-                    </a>
+                  <h3 className="font-semibold text-base tracking-tight text-indigo-800 font-sans mb-2">
+                    {item.url ? (
+                      <a href={item.url} target="_blank" rel="noopener noreferrer" className="hover:text-blue-700 transition-colors">
+                        {item.title}
+                      </a>
+                    ) : (
+                      item.title
+                    )}
                   </h3>
                   {item.summary && (
-                    <p className="text-gray-600 text-xs mb-3 line-clamp-2">
-                      {item.summary}
+                    <p className="text-gray-800 text-base font-medium font-sans tracking-normal mb-4 line-clamp-2" style={{display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden'}}>
+                      {stripHtml(item.summary)}
                     </p>
                   )}
-                  {item.relatedStocks && item.relatedStocks.length > 0 && (
-                    <div className="mb-3">
-                      <div className="flex flex-wrap gap-1">
-                        {item.relatedStocks.map((stock, stockIdx) => (
-                          <span key={stockIdx} className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded border border-blue-200">
-                            {stock}
-                          </span>
-                        ))}
-                      </div>
+                  {/* Show real-time sentiment and impact if available and not mock/sample */}
+                  {item.sentiment && item.impact && item.url !== '#' && (
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${
+                        item.sentiment === 'positive' ? 'bg-green-100 text-green-700 border-green-200' :
+                        item.sentiment === 'negative' ? 'bg-red-100 text-red-700 border-red-200' :
+                        'bg-gray-100 text-gray-700 border-gray-200'
+                      }`}>
+                        {item.sentiment.charAt(0).toUpperCase() + item.sentiment.slice(1)}
+                      </span>
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${
+                        item.impact === 'high' ? 'bg-red-100 text-red-700 border-red-200' :
+                        item.impact === 'medium' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                        'bg-green-100 text-green-700 border-green-200'
+                      }`}>
+                        {item.impact.charAt(0).toUpperCase() + item.impact.slice(1)} Impact
+                      </span>
                     </div>
                   )}
-                  <div className="flex items-center justify-between text-xs text-gray-500">
+                  <div className="flex items-center justify-between text-xs text-gray-500 mt-2">
                     <span className="font-semibold text-gray-700">{item.source}</span>
                     <div className="flex items-center space-x-2">
                       <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
