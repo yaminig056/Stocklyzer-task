@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockAnalyser - Live Market Intelligence</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/navigation.css">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <i class="fas fa-chart-line"></i>
+                <span>StockAnalyser</span>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="index.html" class="nav-link active">
+                        <i class="fas fa-home"></i>
+                        Home
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="portfolio.html" class="nav-link">
+                        <i class="fas fa-briefcase"></i>
+                        Portfolio
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-chart-bar"></i>
+                        Analysis
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-bell"></i>
+                        Alerts
+                    </a>
+                </li>
+            </ul>
+            <div class="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <header class="hero-header">
+        <div class="hero-content">
+            <h1>Live Market Intelligence</h1>
+            <p>Real-time stock analysis, news, and portfolio tracking for smart investments</p>
+            <div class="market-status">
+                <span class="status-indicator live"></span>
+                <span>Live Market Data</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Market Overview Section -->
+        <section class="market-overview">
+            <h2><i class="fas fa-globe"></i> Market Overview</h2>
+            <div class="market-indices">
+                <div class="index-card">
+                    <h3>NIFTY 50</h3>
+                    <div class="index-value">19,245.60</div>
+                    <div class="index-change positive">+125.40 (+0.66%)</div>
+                </div>
+                <div class="index-card">
+                    <h3>SENSEX</h3>
+                    <div class="index-value">63,782.80</div>
+                    <div class="index-change positive">+385.20 (+0.61%)</div>
+                </div>
+                <div class="index-card">
+                    <h3>BANK NIFTY</h3>
+                    <div class="index-value">43,567.90</div>
+                    <div class="index-change negative">-89.30 (-0.20%)</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Live News Section -->
+        <section class="live-news-section">
+            <div class="section-header">
+                <h2><i class="fas fa-newspaper"></i> Live Market News</h2>
+                <div class="news-filters">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="positive">Positive</button>
+                    <button class="filter-btn" data-filter="negative">Negative</button>
+                    <button class="filter-btn" data-filter="neutral">Neutral</button>
+                </div>
+            </div>
+            
+            <div class="news-grid" id="news-grid">
+                <!-- News cards will be populated by JavaScript -->
+            </div>
+        </section>
+
+        <!-- Top Gainers & Losers -->
+        <section class="market-movers">
+            <div class="movers-container">
+                <div class="top-gainers">
+                    <h3><i class="fas fa-arrow-up"></i> Top Gainers</h3>
+                    <div class="stock-list" id="top-gainers">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+                <div class="top-losers">
+                    <h3><i class="fas fa-arrow-down"></i> Top Losers</h3>
+                    <div class="stock-list" id="top-losers">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>StockAnalyser</h4>
+                <p>Your trusted partner for market intelligence and portfolio management.</p>
+            </div>
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="portfolio.html">Portfolio</a></li>
+                    <li><a href="#">Analysis</a></li>
+                    <li><a href="#">Alerts</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Contact</h4>
+                <p>Email: info@stockanalyser.com</p>
+                <p>Phone: +91 98765 43210</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 StockAnalyser. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/navigation.js"></script>
+    <script src="js/homepage.js"></script>
+</body>
+</html> 

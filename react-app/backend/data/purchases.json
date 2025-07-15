@@ -1,0 +1,47 @@
+[
+  {
+    "symbol": "RELIANCE",
+    "quantity": 10,
+    "price": 2450,
+    "avgPrice": 2450,
+    "id": "1",
+    "purchaseDate": "2024-01-01T10:00:00.000Z",
+    "lastUpdated": "2024-01-01T10:00:00.000Z"
+  },
+  {
+    "symbol": "TCS",
+    "quantity": 5,
+    "price": 3850,
+    "avgPrice": 3850,
+    "id": "2",
+    "purchaseDate": "2024-01-01T10:00:00.000Z",
+    "lastUpdated": "2024-01-01T10:00:00.000Z"
+  },
+  {
+    "symbol": "HDFCBANK",
+    "quantity": 8,
+    "price": 1650,
+    "avgPrice": 1650,
+    "id": "3",
+    "purchaseDate": "2024-01-01T10:00:00.000Z",
+    "lastUpdated": "2024-01-01T10:00:00.000Z"
+  },
+  {
+    "symbol": "INFY",
+    "quantity": 13,
+    "price": 1450,
+    "avgPrice": 1460.8692307692306,
+    "id": "4",
+    "purchaseDate": "2024-01-01T10:00:00.000Z",
+    "lastUpdated": "2025-07-11T07:33:09.617Z"
+  },
+  {
+    "symbol": "ITC",
+    "quantity": 20,
+    "price": 425,
+    "avgPrice": 425,
+    "id": "5",
+    "purchaseDate": "2024-01-01T10:00:00.000Z",
+    "lastUpdated": "2024-01-01T10:00:00.000Z"
+  }
+]

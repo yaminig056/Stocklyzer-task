@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Tracker - StockAnalyser</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/navigation.css">
+    <link rel="stylesheet" href="css/portfolio.css">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <i class="fas fa-chart-line"></i>
+                <span>StockAnalyser</span>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="index.html" class="nav-link">
+                        <i class="fas fa-home"></i>
+                        Home
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="portfolio.html" class="nav-link active">
+                        <i class="fas fa-briefcase"></i>
+                        Portfolio
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-chart-bar"></i>
+                        Analysis
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-bell"></i>
+                        Alerts
+                    </a>
+                </li>
+            </ul>
+            <div class="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Portfolio Header -->
+    <header class="portfolio-header">
+        <div class="portfolio-header-content">
+            <h1><i class="fas fa-briefcase"></i> Portfolio Tracker</h1>
+            <p>Monitor 25 top companies with real-time data and impact analysis</p>
+            <div class="portfolio-summary">
+                <div class="summary-card">
+                    <span class="summary-label">Total Value</span>
+                    <span class="summary-value">₹2,45,67,890</span>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-label">Today's Change</span>
+                    <span class="summary-value positive">+₹12,34,567 (+5.02%)</span>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-label">Companies</span>
+                    <span class="summary-value">25</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Portfolio Controls -->
+    <section class="portfolio-controls">
+        <div class="controls-container">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="company-search" placeholder="Search companies...">
+            </div>
+            <div class="filter-controls">
+                <select id="sector-filter">
+                    <option value="">All Sectors</option>
+                    <option value="Banking">Banking</option>
+                    <option value="Technology">Technology</option>
+                    <option value="Healthcare">Healthcare</option>
+                    <option value="Energy">Energy</option>
+                    <option value="Automobile">Automobile</option>
+                </select>
+                <select id="sentiment-filter">
+                    <option value="">All Sentiments</option>
+                    <option value="positive">Positive</option>
+                    <option value="negative">Negative</option>
+                    <option value="neutral">Neutral</option>
+                </select>
+            </div>
+        </div>
+    </section>
+
+    <!-- Portfolio Grid -->
+    <main class="portfolio-main">
+        <div class="portfolio-grid" id="portfolio-grid">
+            <!-- Portfolio cards will be populated by JavaScript -->
+        </div>
+    </main>
+
+    <!-- Company Detail Modal -->
+    <div id="company-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div class="modal-header">
+                <h2 id="modal-company-name">Company Name</h2>
+                <div class="modal-stock-info">
+                    <span id="modal-current-price">₹0</span>
+                    <span id="modal-price-change" class="price-change"></span>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="modal-section">
+                    <h3>Stock Performance</h3>
+                    <div class="stock-details">
+                        <div class="detail-row">
+                            <span>Open Price:</span>
+                            <span id="modal-open-price">₹0</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>Current Price:</span>
+                            <span id="modal-current-price-detail">₹0</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>Day High:</span>
+                            <span id="modal-day-high">₹0</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>Day Low:</span>
+                            <span id="modal-day-low">₹0</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>Volume:</span>
+                            <span id="modal-volume">0</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-section">
+                    <h3>Impact Analysis</h3>
+                    <div id="modal-impact-news">
+                        <!-- Impact news will be populated -->
+                    </div>
+                </div>
+                <div class="modal-section">
+                    <h3>Sentiment Analysis</h3>
+                    <div class="sentiment-analysis">
+                        <div class="sentiment-score">
+                            <span id="modal-sentiment-score">0%</span>
+                            <span id="modal-sentiment-label">Neutral</span>
+                        </div>
+                        <div class="sentiment-breakdown">
+                            <div class="sentiment-bar">
+                                <div class="positive-bar" id="positive-bar"></div>
+                                <div class="negative-bar" id="negative-bar"></div>
+                                <div class="neutral-bar" id="neutral-bar"></div>
+                            </div>
+                            <div class="sentiment-labels">
+                                <span>Positive</span>
+                                <span>Negative</span>
+                                <span>Neutral</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>StockAnalyser</h4>
+                <p>Your trusted partner for market intelligence and portfolio management.</p>
+            </div>
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="portfolio.html">Portfolio</a></li>
+                    <li><a href="#">Analysis</a></li>
+                    <li><a href="#">Alerts</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Contact</h4>
+                <p>Email: info@stockanalyser.com</p>
+                <p>Phone: +91 98765 43210</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 StockAnalyser. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/navigation.js"></script>
+    <script src="js/portfolio.js"></script>
+</body>
+</html> 
