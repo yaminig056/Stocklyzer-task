@@ -1,18 +1,5 @@
 const yahooFinance = require('yahoo-finance2').default;
-
-// Portfolio companies with their symbols
-const portfolioCompanies = [
-  { symbol: 'RELIANCE', name: 'Reliance Industries', shares: 100, avgPrice: 2500, sector: 'Oil & Gas' },
-  { symbol: 'TCS', name: 'Tata Consultancy Services', shares: 50, avgPrice: 3500, sector: 'IT' },
-  { symbol: 'HDFCBANK', name: 'HDFC Bank', shares: 200, avgPrice: 1500, sector: 'Banking' },
-  { symbol: 'INFY', name: 'Infosys', shares: 150, avgPrice: 1400, sector: 'IT' },
-  { symbol: 'ICICIBANK', name: 'ICICI Bank', shares: 300, avgPrice: 900, sector: 'Banking' },
-  { symbol: 'HINDUNILVR', name: 'Hindustan Unilever', shares: 75, avgPrice: 2800, sector: 'FMCG' },
-  { symbol: 'ITC', name: 'ITC', shares: 500, avgPrice: 400, sector: 'FMCG' },
-  { symbol: 'SBIN', name: 'State Bank of India', shares: 1000, avgPrice: 600, sector: 'Banking' },
-  { symbol: 'BHARTIARTL', name: 'Bharti Airtel', shares: 200, avgPrice: 1100, sector: 'Telecom' },
-  { symbol: 'AXISBANK', name: 'Axis Bank', shares: 400, avgPrice: 900, sector: 'Banking' }
-];
+const purchaseService = require('./purchaseService');
 
 // Fetch real-time stock data from Yahoo Finance
 async function fetchStockData(symbol) {
@@ -142,39 +129,41 @@ function calculateStockSentimentAndImpact(stock) {
   return { sentiment, impact };
 }
 
-// Get portfolio data with real-time prices
+// Add sector lookup for each company in the portfolio
+const fs = require('fs');
+const path = require('path');
+const niftyFilePath = path.join(__dirname, '../data/nifty500.json');
+let niftyCompanies = [];
+try {
+  niftyCompanies = JSON.parse(fs.readFileSync(niftyFilePath, 'utf8'));
+} catch (e) {
+  niftyCompanies = [];
+}
+
+// Get portfolio data with real-time prices (from purchases.json, not just hardcoded)
 async function getPortfolioData() {
   try {
-    const portfolioPromises = portfolioCompanies.map(async (company) => {
-      const stockData = await fetchStockData(company.symbol);
-      
-      const currentValue = stockData.currentPrice * company.shares;
-      const costValue = company.avgPrice * company.shares;
-      const profitLoss = currentValue - costValue;
-      const profitLossPercent = (profitLoss / costValue) * 100;
-
-      const stock = {
-        ...company,
-        ...stockData,
-        currentValue: currentValue,
-        costValue: costValue,
-        profitLoss: profitLoss,
-        profitLossPercent: profitLossPercent,
-        name: company.name,
-        quantity: company.shares // Add quantity field for consistency
-      };
-      
-      // Calculate sentiment and impact based on performance
+    // Get all user purchases with live prices
+    const portfolioData = await purchaseService.getPortfolioWithPrices();
+    // Attach sector from nifty500.json if available
+    for (const stock of portfolioData) {
+      const match = niftyCompanies.find(c => c.symbol.toUpperCase() === stock.symbol.toUpperCase());
+      if (match && match.sector) {
+        stock.sector = match.sector;
+      }
       const { sentiment, impact } = calculateStockSentimentAndImpact(stock);
       stock.sentiment = sentiment;
       stock.impact = impact;
-
-      return stock;
-    });
-
-    const portfolioData = await Promise.all(portfolioPromises);
-    const metrics = calculatePortfolioMetrics(portfolioData);
-
+    }
+    const metrics = calculatePortfolioMetrics(
+      portfolioData.map(item => ({
+        ...item,
+        shares: item.quantity || item.shares || 0,
+        avgPrice: item.avgPrice || item.price || 0,
+        currentPrice: item.currentPrice || 0,
+        previousClose: item.previousClose || 0
+      }))
+    );
     return {
       companies: portfolioData,
       metrics: metrics
@@ -220,6 +209,6 @@ module.exports = {
   getPortfolioData,
   getStockData,
   getPortfolioSummary,
-  portfolioCompanies,
-  getPortfolioWithLivePrices
+  getPortfolioWithLivePrices,
+  fetchStockData
 }; 

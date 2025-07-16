@@ -5,6 +5,8 @@ import StockCard from './components/StockCard';
 import StockChart from './components/StockChart';
 import StockNews from './components/StockNews';
 import LivePriceTicker from './components/LivePriceTicker';
+import { FaTrashAlt } from 'react-icons/fa';
+import { FaBuilding } from 'react-icons/fa';
 
 function Dashboard() {
   const [portfolio, setPortfolio] = useState([]);
@@ -21,6 +23,7 @@ function Dashboard() {
   const [analysisModal, setAnalysisModal] = useState({ show: false, stock: null, sentiment: null, impact: null, news: [] });
   const [portfolioSentiment, setPortfolioSentiment] = useState(null);
   const [portfolioImpact, setPortfolioImpact] = useState(null);
+  const [error, setError] = useState(null);
 
   // Sample data for testing
   const samplePortfolio = [
@@ -66,10 +69,9 @@ function Dashboard() {
     }
   ];
 
-  // Fetch portfolio data
+  // Ensure fetchPortfolio is called on mount and after navigation
   useEffect(() => {
     fetchPortfolio();
-    // setupRealTimeUpdates(); // Commented out for now
   }, []);
 
   // Update portfolio stats when portfolio changes
@@ -92,6 +94,7 @@ function Dashboard() {
   const fetchPortfolio = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await fetch('http://localhost:5000/api/portfolio');
       if (response.ok) {
         const data = await response.json();
@@ -103,29 +106,27 @@ function Dashboard() {
         setLastUpdate(new Date());
         await fetchPortfolioSentiment(data.companies);
       } else {
-        // If backend fails, use sample data
-        console.log('Backend not available, using sample data');
-        setPortfolio(samplePortfolio);
+        setError('Failed to fetch portfolio data from backend.');
+        setPortfolio([]);
         setPortfolioStats({
           totalValue: 0,
           totalChange: 0,
           totalChangePercent: 0,
-          positions: samplePortfolio.length
+          positions: 0
         });
-        setSelectedStock(samplePortfolio[0]);
+        setSelectedStock(null);
         setLastUpdate(new Date());
       }
     } catch (error) {
-      console.error('Error fetching portfolio:', error);
-      // Use sample data on error
-      setPortfolio(samplePortfolio);
+      setError('Failed to fetch portfolio data from backend.');
+      setPortfolio([]);
       setPortfolioStats({
         totalValue: 0,
         totalChange: 0,
         totalChangePercent: 0,
-        positions: samplePortfolio.length
+        positions: 0
       });
-      setSelectedStock(samplePortfolio[0]);
+      setSelectedStock(null);
       setLastUpdate(new Date());
     } finally {
       setLoading(false);
@@ -232,10 +233,35 @@ function Dashboard() {
     setAnalysisModal({ show: false, stock: null, sentiment: null, impact: null, news: [] });
   };
 
+  // Delete a stock from portfolio
+  const handleDeleteStock = async (symbol) => {
+    if (!window.confirm(`Are you sure you want to delete ${symbol} from your portfolio?`)) return;
+    try {
+      const response = await fetch(`http://localhost:5000/api/purchases/${symbol}`, { method: 'DELETE' });
+      if (response.ok) {
+        setPortfolio(prev => prev.filter(stock => stock.symbol !== symbol));
+        alert(`Deleted ${symbol} from portfolio.`);
+      } else {
+        alert('Failed to delete stock.');
+      }
+    } catch (error) {
+      alert('Error deleting stock.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="bg-red-100 text-red-700 px-6 py-4 rounded-lg shadow-lg text-lg font-semibold">
+          {error}
+        </div>
       </div>
     );
   }
@@ -327,15 +353,15 @@ function Dashboard() {
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Company</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Sector</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Live Price</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Change</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Quantity</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Shares</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Invested Amount</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Latest Value</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Invested Price</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Day's Gain %</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Overall Gain %</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Sentiment</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Impact</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Analysis</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Delete</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
@@ -343,8 +369,9 @@ function Dashboard() {
                   <tr key={stock.symbol} className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 group">
                     <td className="px-6 py-4">
                       <div className="flex items-center">
+                        {/* Company Icon */}
                         <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center text-white font-bold text-sm mr-3">
-                          {stock.symbol.charAt(0)}
+                          <FaBuilding className="w-5 h-5" />
                         </div>
                         <div>
                           <div className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">{stock.name || stock.symbol}</div>
@@ -358,24 +385,9 @@ function Dashboard() {
                       </span>
                     </td>
                     <td className="px-6 py-4 font-semibold text-gray-900">{formatCurrency(stock.currentPrice)}</td>
-                    <td className={`px-6 py-4 font-medium ${stock.change > 0 ? 'text-green-600' : stock.change < 0 ? 'text-red-600' : 'text-gray-700'}`}>
-                      <div className="flex items-center space-x-1">
-                        {stock.change > 0 ? (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                          </svg>
-                        ) : stock.change < 0 ? (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                          </svg>
-                        ) : null}
-                        <span>{stock.change > 0 ? '+' : ''}{formatCurrency(stock.change)}</span>
-                        <span className="text-sm">({stock.changePercent > 0 ? '+' : ''}{(stock.changePercent || 0).toFixed(2)}%)</span>
-                      </div>
-                    </td>
                     <td className="px-6 py-4 text-gray-900">{stock.quantity}</td>
+                    <td className="px-6 py-4 text-gray-900">{formatCurrency(stock.quantity * stock.avgPrice)}</td>
                     <td className="px-6 py-4 font-semibold text-gray-900">{formatCurrency(stock.currentValue)}</td>
-                    <td className="px-6 py-4 text-gray-700">{formatCurrency(stock.costValue)}</td>
                     <td className={`px-6 py-4 font-medium ${stock.changePercent > 0 ? 'text-green-600' : stock.changePercent < 0 ? 'text-red-600' : 'text-gray-700'}`}>
                       {(stock.changePercent || 0).toFixed(2)}%
                     </td>
@@ -406,6 +418,15 @@ function Dashboard() {
                         onClick={() => handleAnalysisClick(stock)}
                       >
                         Analysis
+                      </button>
+                    </td>
+                    <td className="px-6 py-4">
+                      <button
+                        className="bg-red-500 hover:bg-red-700 text-white px-3 py-2 rounded-lg transition-colors text-sm flex items-center space-x-1"
+                        onClick={() => handleDeleteStock(stock.symbol)}
+                        title="Delete Stock"
+                      >
+                        <FaTrashAlt className="mr-1" /> Delete
                       </button>
                     </td>
                   </tr>

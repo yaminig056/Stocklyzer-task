@@ -24,6 +24,12 @@ function Portfolio() {
   const [portfolioMetrics, setPortfolioMetrics] = useState(null);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [searchResult, setSearchResult] = useState(null);
+  const [searchError, setSearchError] = useState(null);
+  const [topN, setTopN] = useState(null); // null = default, else N
+  const [topNLoading, setTopNLoading] = useState(false);
+  const [viewMode, setViewMode] = useState('portfolio'); // 'portfolio' or 'top50'
+  const [userPortfolio, setUserPortfolio] = useState([]); // user's actual portfolio for cross-reference
   const navigate = useNavigate();
 
   // Fetch real-time stock data
@@ -33,7 +39,7 @@ function Portfolio() {
       const response = await fetch('http://localhost:5000/api/portfolio');
       if (response.ok) {
         const data = await response.json();
-        console.log('📊 Portfolio data received:', data);
+        console.log(' Portfolio data received:', data);
         setStocks(data.companies || data);
         setLastUpdated(new Date());
       } else {
@@ -45,6 +51,42 @@ function Portfolio() {
       setStocks([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch top N companies
+  const fetchTopN = async (n) => {
+    setTopNLoading(true);
+    setError(null);
+    setTopN(n);
+    try {
+      const response = await fetch(`http://localhost:5000/api/portfolio/top?n=${n}`);
+      if (response.ok) {
+        const data = await response.json();
+        setStocks(data);
+        setLastUpdated(new Date());
+      } else {
+        setError('Failed to fetch top companies');
+      }
+    } catch (error) {
+      setError('Error fetching top companies');
+    } finally {
+      setTopNLoading(false);
+    }
+  };
+
+  // Fetch user's portfolio for cross-reference
+  const fetchUserPortfolio = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/portfolio');
+      if (response.ok) {
+        const data = await response.json();
+        setUserPortfolio(data.companies || []);
+      } else {
+        setUserPortfolio([]);
+      }
+    } catch {
+      setUserPortfolio([]);
     }
   };
 
@@ -135,20 +177,85 @@ function Portfolio() {
     ];
   };
 
+  // Fallback sector lookup
+  const sectorLookup = {
+    'RELIANCE': 'Oil & Gas',
+    'TCS': 'IT',
+    'HDFCBANK': 'Banking',
+    'INFY': 'IT',
+    'ICICIBANK': 'Banking',
+    'HINDUNILVR': 'FMCG',
+    'ITC': 'FMCG',
+    'SBIN': 'Banking',
+    'BHARTIARTL': 'Telecom',
+    'AXISBANK': 'Banking',
+    'SUNPHARMA': 'Pharma',
+    'BAJFINANCE': 'Finance',
+    'ASIANPAINT': 'Industrial',
+    'MARUTI': 'Auto',
+    'KOTAKBANK': 'Banking',
+    'LT': 'Industrial',
+    'ULTRACEMCO': 'Cement',
+    'TITAN': 'Consumer',
+    'WIPRO': 'IT',
+    'POWERGRID': 'Utilities',
+    'HCLTECH': 'IT',
+    'HCL': 'IT',
+    'NTPC': 'Utilities',
+    'TATAMOTORS': 'Auto',
+    'ONGC': 'Oil & Gas',
+    'ADANIGREEN': 'Energy',
+    'ADANIPORTS': 'Ports',
+    'ADANIPOWER': 'Energy',
+    'ADANITRANS': 'Energy',
+    'DIVISLAB': 'Pharma',
+    'GRASIM': 'Cement',
+    'JSWSTEEL': 'Steel',
+    'M&M': 'Auto',
+    'NESTLEIND': 'FMCG',
+    'TATASTEEL': 'Steel',
+    'TECHM': 'IT',
+    'UPL': 'Agrochem',
+    'BRITANNIA': 'FMCG',
+    'CIPLA': 'Pharma',
+    'COALINDIA': 'Mining',
+    'EICHERMOT': 'Auto',
+    'HEROMOTOCO': 'Auto',
+    'HDFCLIFE': 'Insurance',
+    'INDUSINDBK': 'Banking',
+    'IOC': 'Oil & Gas',
+    'JSWENERGY': 'Energy',
+    'PIDILITIND': 'Chemicals',
+    'SHREECEM': 'Cement',
+    'SIEMENS': 'Industrial',
+    'TATACONSUM': 'FMCG',
+    'TORNTPHARM': 'Pharma'
+  };
+
+  // Fetch data based on viewMode
+  const fetchData = async () => {
+    if (viewMode === 'portfolio') {
+      await fetchPortfolio();
+    } else {
+      await fetchTopN(50);
+      await fetchUserPortfolio(); // always update user portfolio for cross-reference
+    }
+  };
+
   // Fetch initial data and set up real-time updates
   useEffect(() => {
-    fetchPortfolio();
-    
-    // Set up real-time updates every 30 seconds
-    const interval = setInterval(fetchPortfolio, 30000);
-    
+    fetchData();
+    const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [viewMode]);
 
   const filteredStocks = stocks.filter(stock => {
-    const matchesSearch = stock.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         stock.symbol.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSector = sector === 'all' || stock.sector === sector;
+    const matchesSearch =
+      (stock.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (stock.symbol?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+    
+    const getSector = (stock) => stock.sector || sectorLookup[(stock.symbol || '').trim().toUpperCase()] || 'Unknown';
+    const matchesSector = sector === 'all' || getSector(stock) === sector;
     const matchesSentiment = sentiment === 'all' || stock.sentiment === sentiment;
     
     let matchesPrice = true;
@@ -175,6 +282,24 @@ function Portfolio() {
     totalProfitLoss: stocks.reduce((sum, stock) => sum + (stock.profitLoss || 0), 0),
     totalProfitLossPercent: stocks.length > 0 ? (stocks.reduce((sum, stock) => sum + (stock.profitLoss || 0), 0) / Math.max(stocks.reduce((sum, stock) => sum + (stock.costValue || 0), 0), 1)) * 100 : 0
   };
+
+  // Calculate summary for Top 50 Companies
+  const top50Summary = viewMode === 'top50' ? (() => {
+    const totalValue = stocks.reduce((sum, stock) => sum + (stock.currentPrice || 0), 0);
+    const totalPrevClose = stocks.reduce((sum, stock) => sum + (stock.previousClose || 0), 0);
+    const totalPL = stocks.reduce((sum, stock) => sum + ((stock.currentPrice || 0) - (stock.previousClose || 0)), 0);
+    const totalPLPercent = totalPrevClose > 0 ? (totalPL / totalPrevClose) * 100 : 0;
+    const totalChange = stocks.reduce((sum, stock) => sum + ((stock.currentPrice || 0) - (stock.openPrice || 0)), 0);
+    const totalOpen = stocks.reduce((sum, stock) => sum + (stock.openPrice || 0), 0);
+    const totalChangePercent = totalOpen > 0 ? (totalChange / totalOpen) * 100 : 0;
+    return {
+      totalValue,
+      totalPL,
+      totalPLPercent,
+      totalChange,
+      totalChangePercent
+    };
+  })() : null;
 
   const handleBuyClick = (stock) => {
     setBuyModal({ show: true, stock, quantity: 1 });
@@ -206,9 +331,7 @@ function Portfolio() {
       });
 
       if (response.ok) {
-        const result = await response.json();
-        alert(`Successfully purchased ${buyModal.quantity} shares of ${buyModal.stock.symbol} for ${formatCurrency(totalCost)}`);
-        setBuyModal({ show: false, stock: null, quantity: 1 });
+        // Redirect to Dashboard after successful purchase
         navigate('/dashboard');
       } else {
         const errorData = await response.json().catch(() => ({}));
@@ -229,40 +352,132 @@ function Portfolio() {
 
   const totalCost = buyModal.stock ? buyModal.stock.currentPrice * buyModal.quantity : 0;
 
+  // New: Search for any stock by symbol
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!searchTerm.trim()) return;
+    setSearchError(null);
+    setSearchResult(null);
+    setLoading(true);
+    try {
+      const response = await fetch(`http://localhost:5000/api/portfolio/search/${searchTerm.trim().toUpperCase()}`);
+      if (response.ok) {
+        const data = await response.json();
+        setSearchResult(data);
+      } else {
+        setSearchError('Stock not found.');
+      }
+    } catch (error) {
+      setSearchError('Error searching for stock.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper to get user's avg price and P&L for a stock symbol (case-insensitive, trimmed)
+  const getUserStockData = (symbol) => {
+    const match = userPortfolio.find(s => (s.symbol || '').trim().toUpperCase() === (symbol || '').trim().toUpperCase());
+    if (viewMode === 'top50') {
+      // Debug: log matching attempts for Top 50
+      if (symbol === 'TCS' || symbol === 'RELIANCE') {
+        console.log('DEBUG: Matching symbol', symbol, 'with user portfolio:', userPortfolio);
+        console.log('DEBUG: Matched user stock data:', match);
+      }
+    }
+    return match;
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Portfolio</h1>
-        <div className="flex items-center space-x-4">
-          {lastUpdated && (
-            <div className="text-sm text-gray-600">
-              Last updated: {lastUpdated.toLocaleTimeString()}
-            </div>
-          )}
-          <button
-            onClick={fetchPortfolio}
-            disabled={loading}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center space-x-2"
+        <div className="flex items-center space-x-2">
+          <select
+            value={viewMode}
+            onChange={e => setViewMode(e.target.value)}
+            className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            {loading ? (
-              <>
-                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+            <option value="portfolio">My Portfolio</option>
+            <option value="top50">Top 50 Companies</option>
+          </select>
+          <form onSubmit={handleSearch} className="flex items-center space-x-2">
+            <input
+              type="text"
+              placeholder="Search by Company (e.g. RELIANCE)"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm">Search</button>
+          </form>
+        </div>
+            </div>
+
+      {/* Loading state for Top N */}
+      {topNLoading && (
+        <div className="flex justify-center items-center py-8">
+          <div className="text-center">
+            <svg className="animate-spin h-8 w-8 text-blue-600 mx-auto mb-2" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <span>Loading...</span>
-              </>
-            ) : (
-              <>
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                <span>Refresh</span>
-              </>
-            )}
+            <p className="text-gray-600">Loading top {topN} companies...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Search Result */}
+      {searchResult && (
+        <div className="bg-white p-6 rounded-lg shadow-md border border-blue-200 mb-6">
+          <div className="flex justify-between items-start mb-2">
+            <div>
+              <h3 className="font-bold text-lg text-gray-800">{searchResult.name || searchResult.symbol}</h3>
+              <p className="text-sm text-gray-600">{searchResult.symbol}</p>
+            </div>
+            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">{searchResult.sector || '-'}</span>
+          </div>
+          <div className="space-y-2 mb-4">
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-600">Current Price:</span>
+              <span className="text-sm font-semibold text-gray-900">{formatCurrency(searchResult.currentPrice)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-600">Open Price:</span>
+              <span className="text-sm">{formatCurrency(searchResult.openPrice)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-600">Previous Close:</span>
+              <span className="text-sm">{formatCurrency(searchResult.previousClose)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-600">Change:</span>
+              <span className={`text-sm font-semibold ${searchResult.change > 0 ? 'text-green-600' : searchResult.change < 0 ? 'text-red-600' : 'text-gray-700'}`}>{searchResult.change} ({searchResult.changePercent?.toFixed(2)}%)</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-600">Volume:</span>
+              <span className="text-sm">{searchResult.volume?.toLocaleString()}</span>
+            </div>
+          </div>
+          {/* Action Buttons */}
+          <div className="flex space-x-2 mt-2">
+            <button
+              onClick={() => handleBuyClick(searchResult)}
+              className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+            >
+              Buy Stock
+            </button>
+            <button
+              onClick={() => handleChartClick(searchResult)}
+              className="bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors text-sm"
+            >
+              Chart
           </button>
         </div>
       </div>
+      )}
+      {searchError && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-lg mb-6">{searchError}</div>
+      )}
 
       {/* Error Message */}
       {error && (
@@ -325,18 +540,32 @@ function Portfolio() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white p-4 rounded-lg shadow-md">
           <h3 className="text-lg font-semibold text-gray-700">Total Value</h3>
-          <p className="text-2xl font-bold text-blue-600">{formatCurrency(portfolioSummary.totalValue)}</p>
+          <p className="text-2xl font-bold text-blue-600">
+            {viewMode === 'top50'
+              ? formatCurrency(top50Summary.totalValue)
+              : formatCurrency(portfolioSummary.totalValue)}
+          </p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-md">
-          <h3 className="text-lg font-semibold text-gray-700">Today's Change</h3>
-          <p className={`text-2xl font-bold ${portfolioSummary.totalChangePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {portfolioSummary.totalChange >= 0 ? '+' : ''}{formatCurrency(portfolioSummary.totalChange)} ({portfolioSummary.totalChangePercent >= 0 ? '+' : ''}{portfolioSummary.totalChangePercent.toFixed(2)}%)
+          <h3 className="text-lg font-semibold text-gray-700">Total Change</h3>
+          <p className={`text-2xl font-bold ${viewMode === 'top50'
+            ? (top50Summary.totalChange >= 0 ? 'text-green-600' : 'text-red-600')
+            : (portfolioSummary.totalChangePercent >= 0 ? 'text-green-600' : 'text-red-600')}`}
+          >
+            {viewMode === 'top50'
+              ? `${top50Summary.totalChange >= 0 ? '+' : ''}${formatCurrency(top50Summary.totalChange)} (${top50Summary.totalChangePercent >= 0 ? '+' : ''}${top50Summary.totalChangePercent.toFixed(2)}%)`
+              : `${portfolioSummary.totalChange >= 0 ? '+' : ''}${formatCurrency(portfolioSummary.totalChange)} (${portfolioSummary.totalChangePercent >= 0 ? '+' : ''}${portfolioSummary.totalChangePercent.toFixed(2)}%)`}
           </p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-md">
           <h3 className="text-lg font-semibold text-gray-700">Total P&L</h3>
-          <p className={`text-2xl font-bold ${portfolioSummary.totalProfitLossPercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {portfolioSummary.totalProfitLoss >= 0 ? '+' : ''}{formatCurrency(portfolioSummary.totalProfitLoss)} ({portfolioSummary.totalProfitLossPercent >= 0 ? '+' : ''}{portfolioSummary.totalProfitLossPercent.toFixed(2)}%)
+          <p className={`text-2xl font-bold ${viewMode === 'top50'
+            ? (top50Summary.totalPL >= 0 ? 'text-green-600' : 'text-red-600')
+            : (portfolioSummary.totalProfitLoss >= 0 ? 'text-green-600' : 'text-red-600')}`}
+          >
+            {viewMode === 'top50'
+              ? `${top50Summary.totalPL >= 0 ? '+' : ''}${formatCurrency(top50Summary.totalPL)} (${top50Summary.totalPLPercent >= 0 ? '+' : ''}${top50Summary.totalPLPercent.toFixed(2)}%)`
+              : `${portfolioSummary.totalProfitLoss >= 0 ? '+' : ''}${formatCurrency(portfolioSummary.totalProfitLoss)} (${portfolioSummary.totalProfitLossPercent >= 0 ? '+' : ''}${portfolioSummary.totalProfitLossPercent.toFixed(2)}%)`}
           </p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-md">
@@ -360,15 +589,15 @@ function Portfolio() {
       {/* Stocks Grid */}
       {!loading && (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredStocks.map((stock, index) => (
-          <div key={index} className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-100">
+        {filteredStocks.map((stock) => (
+          <div key={stock.symbol} className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-100">
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h3 className="font-bold text-lg text-gray-800">{stock.name}</h3>
                 <p className="text-sm text-gray-600">{stock.symbol}</p>
               </div>
               <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                {stock.sector}
+                {stock.sector || sectorLookup[(stock.symbol || '').trim().toUpperCase()] || 'Unknown'}
               </span>
             </div>
             
@@ -381,13 +610,14 @@ function Portfolio() {
               </div>
 
               <div className="flex justify-between items-center">
-                <span className="text-xs text-gray-600">Shares:</span>
-                <span className="text-sm font-medium text-gray-700">{stock.shares}</span>
-              </div>
-
-              <div className="flex justify-between items-center">
                 <span className="text-xs text-gray-600">Avg Price:</span>
-                <span className="text-sm font-medium text-gray-700">{formatCurrency(stock.avgPrice)}</span>
+                <span className="text-sm font-medium text-gray-700">
+                  {viewMode === 'top50' ? (
+                    typeof stock.previousClose === 'number'
+                      ? formatCurrency(stock.previousClose)
+                      : 'N/A'
+                  ) : formatCurrency(stock.avgPrice)}
+                </span>
               </div>
 
               <div className="flex justify-between items-center">
@@ -396,7 +626,32 @@ function Portfolio() {
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-xs text-gray-600">Close Price:</span>
-                <span className="text-sm font-medium text-gray-700">{formatCurrency(stock.closePrice)}</span>
+                <span className="text-sm font-medium text-gray-700">{formatCurrency(stock.previousClose)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-600">P&L:</span>
+                <span className={`text-sm font-semibold ${(() => {
+                  if (viewMode === 'top50') {
+                    const pnl = typeof stock.currentPrice === 'number' && typeof stock.previousClose === 'number'
+                      ? stock.currentPrice - stock.previousClose
+                      : null;
+                    return pnl !== null && pnl > 0 ? 'text-green-600' : 'text-red-600';
+                  } else {
+                    return typeof stock.profitLossPercent === 'number' && stock.profitLossPercent > 0 ? 'text-green-600' : 'text-red-600';
+                  }
+                })()}`}>{viewMode === 'top50' ? (
+                  (() => {
+                    if (typeof stock.currentPrice === 'number' && typeof stock.previousClose === 'number') {
+                      const pnl = stock.currentPrice - stock.previousClose;
+                      const pnlPercent = stock.previousClose !== 0 ? (pnl / stock.previousClose) * 100 : 0;
+                      return `${pnl > 0 ? '+' : ''}${formatCurrency(pnl)} (${pnlPercent > 0 ? '+' : ''}${pnlPercent.toFixed(2)}%)`;
+                    }
+                    return 'N/A';
+                  })()
+                ) : (
+                  `${typeof stock.profitLoss === 'number' && stock.profitLoss > 0 ? '+' : ''}${formatCurrency(stock.profitLoss)}${typeof stock.profitLossPercent === 'number' ? ` (${stock.profitLossPercent > 0 ? '+' : ''}${stock.profitLossPercent.toFixed(2)}%)` : ''}`
+                )}
+                </span>
               </div>
             </div>
 
@@ -405,22 +660,15 @@ function Portfolio() {
               <div className="flex justify-between items-center">
                 <span className="text-xs text-gray-600">Today's Change:</span>
                 <div className="text-right">
-                  <div className={`text-sm font-semibold ${stock.changePercent > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {stock.change > 0 ? '+' : ''}{formatCurrency(stock.change)} ({stock.changePercent > 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%)
+                  <div className={`text-sm font-semibold ${typeof stock.changePercent === 'number' && stock.changePercent > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {typeof stock.change === 'number' && stock.change > 0 ? '+' : ''}{formatCurrency(stock.change)} {typeof stock.changePercent === 'number' ? `(${stock.changePercent > 0 ? '+' : ''}${stock.changePercent.toFixed(2)}%)` : ''}
                   </div>
                 </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-gray-600">P&L:</span>
-                <div className="text-right">
-                  <div className={`text-sm font-semibold ${stock.profitLossPercent > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {stock.profitLoss > 0 ? '+' : ''}{formatCurrency(stock.profitLoss)}
-                  </div>
-                  <div className={`text-xs ${stock.profitLossPercent > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {stock.profitLossPercent > 0 ? '+' : ''}{stock.profitLossPercent.toFixed(2)}%
-                  </div>
-                </div>
-              </div>
+              {/*
+                NOTE: P&L and Avg Price will only show real values for stocks in your actual portfolio (from /api/portfolio).
+                For top N companies (from /api/portfolio/top), these values may be 0.00 because there is no purchase data.
+              */}
             </div>
 
             {/* Sentiment and Action */}

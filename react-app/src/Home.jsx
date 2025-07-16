@@ -145,6 +145,15 @@ function Home() {
     }
   ];
 
+  // Utility to strip HTML tags and limit to 2 lines (about 200 chars)
+  function getCleanSummary(html, maxLength = 200) {
+    if (!html) return '';
+    // Remove HTML tags
+    const text = html.replace(/<[^>]+>/g, '');
+    // Limit to maxLength and add ellipsis if needed
+    return text.length > maxLength ? text.slice(0, maxLength) + '...' : text;
+  }
+
   const formatTimeAgo = (dateString) => {
     const now = new Date();
     const published = new Date(dateString);
@@ -188,21 +197,6 @@ function Home() {
       <h1 className="text-4xl font-bold text-gray-800 mb-6">Welcome to Stocklyzer</h1>
       <p className="text-xl text-gray-600 mb-8">Your comprehensive stock analysis platform</p>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-xl font-semibold text-blue-600 mb-2">Market Overview</h3>
-          <p className="text-gray-600">Get real-time market data and insights</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-xl font-semibold text-green-600 mb-2">Portfolio Management</h3>
-          <p className="text-gray-600">Track and manage your stock investments</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-xl font-semibold text-purple-600 mb-2">Analytics</h3>
-          <p className="text-gray-600">Advanced charts and analysis tools</p>
-        </div>
-      </div>
-
       {/* Live Market Indices */}
       <MarketIndices />
 
@@ -213,7 +207,7 @@ function Home() {
           <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <h2 className="text-xl font-bold text-white">Latest Market News</h2>
+                <h2 className="text-xl font-bold text-white">Latest News</h2>
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                   <span className="text-blue-100 text-sm font-medium">LIVE</span>
@@ -244,17 +238,7 @@ function Home() {
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getCategoryColor(item.category)}`}>
                         {item.category}
                       </span>
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getImpactColor(item.impact)}`}>
-                        {item.impact} Impact
-                      </span>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${
-                      item.sentiment === 'positive' ? 'bg-green-100 text-green-700 border-green-200' : 
-                      item.sentiment === 'negative' ? 'bg-red-100 text-red-700 border-red-200' : 
-                      'bg-gray-100 text-gray-700 border-gray-200'
-                    }`}>
-                      {item.sentiment}
-                    </span>
                   </div>
                   <h3 className="font-bold text-gray-900 text-sm leading-tight mb-3 line-clamp-3">
                     <a href={item.url} className="hover:text-blue-600 transition-colors">
@@ -262,8 +246,8 @@ function Home() {
                     </a>
                   </h3>
                   {item.summary && (
-                    <p className="text-gray-600 text-xs mb-3 line-clamp-2">
-                      {item.summary}
+                    <p className="text-gray-700 text-sm mb-3 line-clamp-2 font-medium">
+                      {getCleanSummary(item.summary)}
                     </p>
                   )}
                   {item.relatedStocks && item.relatedStocks.length > 0 && (

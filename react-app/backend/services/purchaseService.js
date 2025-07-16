@@ -38,9 +38,10 @@ async function savePurchases(purchases) {
 async function addPurchase(purchaseData) {
   try {
     const purchases = await loadPurchases();
-    
-    // Check if stock already exists in portfolio
-    const existingIndex = purchases.findIndex(p => p.symbol === purchaseData.symbol);
+    // Normalize symbol to uppercase for matching and saving
+    const symbol = purchaseData.symbol.toUpperCase();
+    // Check if stock already exists in portfolio (case-insensitive)
+    const existingIndex = purchases.findIndex(p => (p.symbol || '').toUpperCase() === symbol);
     
     if (existingIndex !== -1) {
       // Update existing purchase (average the price)
@@ -59,6 +60,7 @@ async function addPurchase(purchaseData) {
       // Add new purchase
       purchases.push({
         ...purchaseData,
+        symbol: symbol, // Always save as uppercase
         id: Date.now().toString(),
         purchaseDate: new Date().toISOString(),
         lastUpdated: new Date().toISOString()

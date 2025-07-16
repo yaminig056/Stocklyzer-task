@@ -21,12 +21,30 @@ router.post('/', async (req, res) => {
       });
     }
 
+    // Look up name and sector from nifty500.json
+    let name = symbol;
+    let sector = 'Unknown';
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const filePath = path.join(__dirname, '../data/nifty500.json');
+      const companies = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      const match = companies.find(c => c.symbol.toUpperCase() === symbol.toUpperCase());
+      if (match) {
+        name = match.name;
+        // Optionally, add sector if your JSON has it
+        if (match.sector) sector = match.sector;
+      }
+    } catch (e) { /* ignore */ }
+
     // Add purchase
     const result = await purchaseService.addPurchase({
       symbol: symbol.toUpperCase(),
       quantity: parseInt(quantity),
       price: parseFloat(price),
-      avgPrice: parseFloat(price) // For new purchases, avg price = purchase price
+      avgPrice: parseFloat(price), // For new purchases, avg price = purchase price
+      name,
+      sector
     });
 
     res.status(201).json({
@@ -141,22 +159,20 @@ router.put('/:symbol/sell', async (req, res) => {
 router.delete('/:symbol', async (req, res) => {
   try {
     const { symbol } = req.params;
-    const purchase = await purchaseService.getPurchaseBySymbol(symbol.toUpperCase());
-    
-    if (!purchase) {
-      return res.status(404).json({ error: 'Purchase not found' });
+    const purchases = await purchaseService.getPurchases();
+    const index = purchases.findIndex(p => p.symbol.toUpperCase() === symbol.toUpperCase());
+    if (index === -1) {
+      return res.status(404).json({ error: 'Stock not found in portfolio' });
     }
-    
-    const result = await purchaseService.updatePurchaseQuantity(symbol.toUpperCase(), purchase.quantity);
-    
-    res.json({
-      success: true,
-      message: `Successfully sold all shares of ${symbol.toUpperCase()}`,
-      purchases: result.purchases
-    });
+    purchases.splice(index, 1);
+    await require('fs').promises.writeFile(
+      require('path').join(__dirname, '../data/purchases.json'),
+      JSON.stringify(purchases, null, 2)
+    );
+    res.json({ success: true, message: `Deleted ${symbol.toUpperCase()} from portfolio` });
   } catch (error) {
     console.error('Error deleting purchase:', error);
-    res.status(500).json({ error: 'Failed to delete purchase' });
+    res.status(500).json({ error: 'Failed to delete stock from portfolio' });
   }
 });
 
